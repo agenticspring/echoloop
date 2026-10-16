@@ -227,3 +227,20 @@ test('restart clears ghosts, orbs, score, combo', function () {
   assert.equal(g.combo, 1);
   assert.equal(g.loopCount, 0);
 });
+
+test('regression: screen shake decays to zero after death (no endless shake)', function () {
+  var g = fresh();
+  g.die('test');
+  assert.ok(g.shake > 0, 'shake armed on death');
+  for (var i = 0; i < 120; i++) g.update(16.7); // 2s of frames in gameover
+  assert.equal(g.shake, 0, 'shake decayed to 0 even though step() never runs');
+});
+
+test('regression: repeated restart resets shake to zero', function () {
+  var g = fresh();
+  g.die('test');
+  g.start();
+  assert.equal(g.shake, 0);
+  g.start();
+  assert.equal(g.shake, 0);
+});

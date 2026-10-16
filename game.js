@@ -73,8 +73,11 @@ Game.prototype.setInput = function (x, y) {
 
 /* Fixed-timestep driver. Call every rAF with real dt in ms. */
 Game.prototype.update = function (dtMs) {
-  if (this.state !== 'playing') return;
   if (!(dtMs >= 0)) dtMs = 16.7;
+  // shake must decay in every state: after death the sim no longer steps,
+  // but update() still runs each frame — never let the screen shake forever.
+  if (this.shake > 0) this.shake = Math.max(0, this.shake - dtMs / 16);
+  if (this.state !== 'playing') return;
   this.acc += Math.min(dtMs, 250);
   var n = 0;
   while (this.acc >= STEP_MS && n < 5) {

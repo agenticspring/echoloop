@@ -215,11 +215,13 @@
 <script src="audio.js"></script>
 <script src="main.js"></script>
 <script>
-  document.getElementById('btn-start').addEventListener('click', function () {
-    if (window.__echoloop) window.__echoloop.tap();
-  });
-  document.getElementById('btn-again').addEventListener('click', function () {
-    if (window.__echoloop) window.__echoloop.tap();
+  // Tap anywhere on the title / game-over overlays to start/restart, as the
+  // on-screen hints promise ("tap to restart"). tap() is state-guarded, so a
+  // button click bubbling up to the overlay handler is a harmless no-op.
+  ['ov-title', 'ov-over'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function () {
+      if (window.__echoloop) window.__echoloop.tap();
+    });
   });
 </script>
 </body>

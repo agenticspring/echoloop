@@ -221,3 +221,23 @@ test('best score persists to localStorage on death', function () {
   assert.equal(b.store['echoloop_best'], '1234');
   assert.ok(b.els['over-best'].textContent.indexOf('1234') !== -1);
 });
+
+test('regression: joystick released when paused mid-drag (no stale steering on resume)', function () {
+  var b = boot();
+  var api = b.sb.window.__echoloop;
+  var g = api.game;
+  key(b.winHandlers, ' ', true); key(b.winHandlers, ' ', false);
+  var cv = b.els['game'];
+  cv._handlers['pointerdown']({ pointerId: 7, clientX: 480, clientY: 300 });
+  cv._handlers['pointermove']({ pointerId: 7, clientX: 540, clientY: 300 });
+  api.frame(16.7);
+  // pause via the pause button — no canvas pointerup is fired (mobile reality)
+  b.els['btn-pause']._handlers['click']();
+  assert.equal(g.state, 'paused');
+  // resume
+  b.els['btn-pause']._handlers['click']();
+  assert.equal(g.state, 'playing');
+  var x0 = g.player.x;
+  for (var i = 0; i < 30; i++) api.frame(16.7);
+  assert.equal(g.player.x, x0, 'player holds still — stale joystick was dropped');
+});

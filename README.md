@@ -49,8 +49,8 @@ echoloop/
 ├── audio.js     # tiny WebAudio synth, no audio files
 ├── main.js      # canvas renderer, input, game loop
 └── tests/
-    ├── test_logic.js   # 18 unit tests for game.js (node --test)
-    └── test_wiring.js  # 8 automated playtests: boots the REAL browser
+    ├── test_logic.js   # 20 unit tests for game.js (node --test)
+    └── test_wiring.js  # 9 automated playtests: boots the REAL browser
                         # files in a stubbed-DOM sandbox and drives them
                         # with scripted keyboard/touch input
 ```
@@ -78,6 +78,15 @@ node --test tests/
 - Best score is per-browser (`localStorage`); no account sync.
 - Sound requires a user gesture first (browser autoplay policy).
 - Ghost AI is pure replay — it never hunts you, it *is* you.
+- Arena renders at a fixed 960×600 logical resolution, scaled to fit the
+  screen — on small phones the playfield gets tiny (HUD stays DOM-sized
+  and readable, but the ship/ghosts shrink with the canvas).
+- Touch steering is a drag-anywhere virtual joystick; it needs pointer
+  events, and the tap targets on the title/game-over overlays are sized
+  for thumbs but were not tested on real iOS Safari/Android devices
+  (no physical-device QA in this build's audit pass).
+- `localStorage` failures (private mode / disabled storage) are swallowed
+  silently — best score just won't persist.
 
 ## License
 

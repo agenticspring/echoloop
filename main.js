@@ -160,6 +160,15 @@
     show(ui.pause, game.state === 'paused');
     show(ui.over, game.state === 'gameover');
     ui.btnPause.textContent = game.state === 'paused' ? '▶' : '⏸';
+    // A pause can be triggered without a canvas pointerup (pause button,
+    // P key, tab hide) while the touch joystick is mid-drag. Drop the stale
+    // stick so the player doesn't steer itself after resume.
+    if (game.state === 'paused') {
+      joy.active = false;
+      joy.id = -1;
+      joy.x = 0;
+      joy.y = 0;
+    }
   }
 
   function refreshHud() {
