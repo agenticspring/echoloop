@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>echoloop — outrun your past selves</title>
+<meta name="description" content="echoloop: a neon arena survival game. Every 12 seconds a ghost of your past self awakens and replays your moves. Don't touch it. Zero dependencies.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: #02040a;
+    color: #dfe7f5;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overscroll-behavior: none;
+  }
+  header {
+    width: 100%;
+    max-width: 980px;
+    padding: 14px 16px 6px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: #4dd8ff;
+    text-shadow: 0 0 18px rgba(77,216,255,.6);
+  }
+  header h1 span { color: #ff5b6e; text-shadow: 0 0 18px rgba(255,91,110,.6); }
+  header p { font-size: 12px; color: #8a93a6; }
+  #wrap {
+    position: relative;
+    width: min(96vw, 980px);
+    aspect-ratio: 960 / 600;
+    margin: 6px 0 10px;
+    border: 1px solid #16233d;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #05070f;
+    box-shadow: 0 0 60px rgba(77,216,255,.07);
+    touch-action: none;
+  }
+  canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    font-size: 14px;
+    pointer-events: none;
+    text-shadow: 0 1px 6px #000;
+  }
+  #hud .score { color: #4dd8ff; font-weight: 700; font-size: 18px; }
+  #hud .best { color: #8a93a6; font-size: 12px; }
+  #hud .combo { color: #6ef3a5; font-weight: 700; }
+  #hud-loop { color: #ff5b6e; font-weight: 700; letter-spacing: 1px; }
+  #loopbar {
+    flex: 1;
+    height: 6px;
+    background: #101a30;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #loopbar-fill { height: 100%; width: 100%; background: #4dd8ff; border-radius: 3px; }
+  #btns { position: absolute; top: 8px; right: 10px; display: flex; gap: 8px; }
+  #btns button {
+    pointer-events: auto;
+    background: rgba(10,18,36,.85);
+    border: 1px solid #22345c;
+    color: #dfe7f5;
+    font-size: 16px;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #btns button:hover { border-color: #4dd8ff; }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(2,4,10,.82);
+    backdrop-filter: blur(3px);
+    text-align: center;
+    padding: 20px;
+    z-index: 5;
+  }
+  .hidden { display: none !important; }
+  .overlay h2 {
+    font-size: clamp(30px, 6vw, 54px);
+    letter-spacing: 6px;
+    color: #4dd8ff;
+    text-shadow: 0 0 30px rgba(77,216,255,.7);
+  }
+  .overlay h2 span { color: #ff5b6e; text-shadow: 0 0 30px rgba(255,91,110,.7); }
+  .overlay .tag { color: #8a93a6; font-size: 15px; }
+  .rules {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #c4cddd;
+    max-width: 520px;
+  }
+  .rules b { color: #6ef3a5; }
+  .rules .danger { color: #ff5b6e; }
+  .bigbtn {
+    margin-top: 6px;
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 12px 34px;
+    border-radius: 10px;
+    border: 1px solid #4dd8ff;
+    background: rgba(77,216,255,.1);
+    color: #4dd8ff;
+    cursor: pointer;
+  }
+  .bigbtn:hover { background: rgba(77,216,255,.22); }
+  .keys { font-size: 12px; color: #8a93a6; }
+  .keys kbd {
+    background: #101a30;
+    border: 1px solid #22345c;
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: inherit;
+    color: #dfe7f5;
+  }
+  #ov-over h2 { color: #ff5b6e; text-shadow: 0 0 30px rgba(255,91,110,.7); }
+  #over-score { font-size: 44px; font-weight: 800; color: #4dd8ff; }
+  #over-best { color: #6ef3a5; font-size: 15px; }
+  #over-cause { color: #8a93a6; font-size: 14px; font-style: italic; }
+  footer {
+    width: 100%;
+    max-width: 980px;
+    padding: 0 16px 18px;
+    font-size: 12px;
+    color: #5a6376;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  footer a { color: #4dd8ff; text-decoration: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ECHO<span>LOOP</span></h1>
+  <p>outrun your past selves</p>
+</header>
+
+<div id="wrap">
+  <canvas id="game" width="960" height="600"></canvas>
+
+  <div id="hud">
+    <span class="score" id="hud-score">0</span>
+    <span class="best">BEST <span id="hud-best">0</span></span>
+    <span class="combo" id="hud-combo">x1</span>
+    <span id="hud-loop">LOOP 1</span>
+    <div id="loopbar"><div id="loopbar-fill"></div></div>
+  </div>
+  <div id="btns">
+    <button id="btn-mute" title="mute (M)">🔊</button>
+    <button id="btn-pause" title="pause (P)">⏸</button>
+  </div>
+
+  <div class="overlay" id="ov-title">
+    <h2>ECHO<span>LOOP</span></h2>
+    <p class="tag">a 12-second time-loop survival arena</p>
+    <div class="rules">
+      <b>Grab the green orbs</b> to score — each orb raises your combo.<br>
+      Every <b>12 seconds</b> a <span class="danger">red ghost</span> awakens and
+      <b>replays your exact moves</b> from the last loop.<br>
+      <span class="danger">Touch a ghost and you die.</span>
+      Ghosts fade after 3 loops — but new ones keep coming.<br>
+      Survive. Outsmart yourself.
+    </div>
+    <button class="bigbtn" id="btn-start">▶ &nbsp;START</button>
+    <p class="keys">
+      <kbd>WASD</kbd>/<kbd>←↑↓→</kbd> move &nbsp;·&nbsp; <kbd>Space</kbd> start &nbsp;·&nbsp;
+      <kbd>P</kbd> pause &nbsp;·&nbsp; <kbd>M</kbd> mute &nbsp;·&nbsp; touch: drag to steer
+    </p>
+  </div>
+
+  <div class="overlay hidden" id="ov-pause">
+    <h2>PAUSED</h2>
+    <p class="keys"><kbd>P</kbd> or tap ⏸ to resume</p>
+  </div>
+
+  <div class="overlay hidden" id="ov-over">
+    <h2>GAME OVER</h2>
+    <div id="over-score">0</div>
+    <div id="over-best">0</div>
+    <div id="over-cause"></div>
+    <button class="bigbtn" id="btn-again">↻ &nbsp;PLAY AGAIN</button>
+    <p class="keys"><kbd>R</kbd> / <kbd>Space</kbd> / tap to restart</p>
+  </div>
+</div>
+
+<footer>
+  <span>echoloop — MIT licensed. Zero dependencies, zero assets, works offline.</span>
+  <span><a href="https://github.com/agenticspring/echoloop">github.com/agenticspring/echoloop</a></span>
+</footer>
+
+<script src="game.js"></script>
+<script src="audio.js"></script>
+<script src="main.js"></script>
+<script>
+  document.getElementById('btn-start').addEventListener('click', function () {
+    if (window.__echoloop) window.__echoloop.tap();
+  });
+  document.getElementById('btn-again').addEventListener('click', function () {
+    if (window.__echoloop) window.__echoloop.tap();
+  });
+</script>
+</body>
+</html>
